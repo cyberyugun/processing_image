@@ -78,6 +78,12 @@
         <label for="quality">Quality (optional):</label>
         <input type="number" id="quality" name="quality" min="1" max="100"><br>
 
+        <label for="compress">Compression Level (PNG only, optional):</label>
+        <input type="number" id="compress" name="compress" min="0" max="9"><br>
+
+        <label for="removeBg">Remove Background:</label>
+        <input type="checkbox" id="removeBg" name="removeBg"><br>
+
         <button type="submit">Process Images</button>
         <button type="button" id="downloadZip" style="background-color: #008CBA;">Download Zip</button>
     </form>
@@ -108,12 +114,9 @@
             resultDiv.innerHTML = '';
 
             processedImages.forEach(image => {
-                // Create image element and set attributes
                 const imgElement = document.createElement('img');
-                imgElement.src = `data:${image.contentType};base64,${image.base64}`;
+                imgElement.src = `data:image/${image.targetFormat};base64,${image.base64}`;
                 imgElement.classList.add('processed-image');
-
-                // Append the image element to the result div
                 resultDiv.appendChild(imgElement);
             });
         });
@@ -128,7 +131,6 @@
                 return;
             }
 
-            // Trigger download of the zip file
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
