@@ -37,7 +37,19 @@ const validateImageSize = (width, height) => {
 // Function to get file extension from mimetype
 const getFileExtension = (originalName) => {
     const ext = path.extname(originalName);
-    return ext.replace('.', '')
+    return ext.replace('.', '');
+};
+
+// Function to classify images using a pre-trained model or external API
+const classifyImage = (imagePath) => {
+    try {
+        const cmd = `python classify_image.py ${imagePath}`;
+        const result = execSync(cmd, { encoding: 'utf8' });  // Specify encoding
+        return result.toString().trim();
+    } catch (error) {
+        console.error('Error classifying image:', error);
+        return 'Classification failed';
+    }
 };
 
 // Endpoint for uploading and processing images
@@ -45,7 +57,7 @@ app.post('/process-images', upload.array('images'), async (req, res) => {
     const files = req.files;
 
     try {
-        const { width = null, height = null, sourceFormat = null, targetFormat = null, quality = 90, removeBg = false, compress = 9 } = req.body;
+        const { width = null, height = null, sourceFormat = null, targetFormat = null, quality = 90, removeBg = false, compress = 9, classify = false } = req.body;
 
         const validSize = validateImageSize(width, height);
         if (!validSize) {
@@ -54,7 +66,12 @@ app.post('/process-images', upload.array('images'), async (req, res) => {
         const filesOutput = fs.readdirSync(outputFolder);
         filesOutput.forEach(file => {
             const filePath = path.join(outputFolder, file);
-            fs.unlinkSync(filePath);
+            try {
+                fs.unlinkSync(filePath);
+                console.log(`File ${filePath} deleted successfully`);
+            } catch (err) {
+                console.error(`Error deleting file ${filePath}: ${err.message}`);
+            }
         });
 
         const processedImages = await Promise.all(files.map(async (file) => {
@@ -109,10 +126,20 @@ app.post('/process-images', upload.array('images'), async (req, res) => {
                 }
             }
 
+            let classificationResult = null;
+            if (classify) {
+                classificationResult = await classifyImage(processedImagePath);
+            }
+
             const resultBase64 = await sharp(processedImagePath).toBuffer().then(buffer => buffer.toString('base64'));
+            const originalBase64 = await sharp(imageBuffer).toBuffer().then(buffer => buffer.toString('base64'));
 
             return {
                 base64: resultBase64,
+                originalBase64: originalBase64,
+                originalFormat: determinedSourceFormat,
+                targetFormat: targetFormat || determinedSourceFormat,
+                classification: classificationResult,
                 originalName: file.originalName,
             };
         }));

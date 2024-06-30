@@ -18,8 +18,8 @@ def remove_background(input_image_path, output_image_path):
     s = np.where(s < 132, 0, 1)  # Any value below 132 will be excluded
  
     # We increase the brightness of the image and then mod by 255
-    v = (myimage_hsv[:,:,2] + 60) % 255
-    v = np.where(v > 60, 1, 0)  # Any value above 70 will be part of our mask
+    v = (myimage_hsv[:,:,2] + 72) % 255
+    v = np.where(v > 72, 1, 0)  # Any value above 70 will be part of our mask
  
     # Combine our two masks based on S and V into a single "Foreground"
     foreground = np.where(s + v > 0, 1, 0).astype(np.uint8)  # Casting back into 8-bit integer

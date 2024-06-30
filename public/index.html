@@ -47,9 +47,26 @@
             margin-top: 20px;
             text-align: center;
         }
-        .processed-image {
+        .image-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .image-container img {
             max-width: 100%;
             margin-top: 10px;
+        }
+        .image-container p {
+            font-weight: bold;
+        }
+        #loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        #loading img {
+            width: 50px;
         }
     </style>
 </head>
@@ -84,24 +101,37 @@
         <label for="removeBg">Remove Background:</label>
         <input type="checkbox" id="removeBg" name="removeBg"><br>
 
+        <label for="classify">Classify Image:</label>
+        <input type="checkbox" id="classify" name="classify"><br>
+
         <button type="submit">Process Images</button>
         <button type="button" id="downloadZip" style="background-color: #008CBA;">Download Zip</button>
     </form>
+
+    <div id="loading">
+        <img src="loading-spinner.gif" alt="Loading...">
+        <p>Processing...</p>
+    </div>
 
     <div id="result"></div>
 
     <script>
         const form = document.getElementById('imageForm');
         const downloadButton = document.getElementById('downloadZip');
+        const loading = document.getElementById('loading');
 
         form.addEventListener('submit', async function(event) {
             event.preventDefault();
+
+            loading.style.display = 'block';
 
             const formData = new FormData(form);
             const response = await fetch('/process-images', {
                 method: 'POST',
                 body: formData
             });
+
+            loading.style.display = 'none';
 
             if (!response.ok) {
                 const errorMessage = await response.text();
@@ -114,17 +144,35 @@
             resultDiv.innerHTML = '';
 
             processedImages.forEach(image => {
-                const imgElement = document.createElement('img');
-                imgElement.src = `data:image/${image.targetFormat};base64,${image.base64}`;
-                imgElement.classList.add('processed-image');
-                resultDiv.appendChild(imgElement);
+                const imageContainer = document.createElement('div');
+                imageContainer.classList.add('image-container');
+
+                const originalImgElement = document.createElement('img');
+                originalImgElement.src = `data:image/${image.originalFormat};base64,${image.originalBase64}`;
+                imageContainer.appendChild(originalImgElement);
+
+                const processedImgElement = document.createElement('img');
+                processedImgElement.src = `data:image/${image.targetFormat};base64,${image.base64}`;
+                imageContainer.appendChild(processedImgElement);
+
+                if (image.classification) {
+                    const classificationText = document.createElement('p');
+                    classificationText.textContent = `Classification: ${image.classification}`;
+                    imageContainer.appendChild(classificationText);
+                }
+
+                resultDiv.appendChild(imageContainer);
             });
         });
 
         downloadButton.addEventListener('click', async function(event) {
             event.preventDefault();
 
+            loading.style.display = 'block';
+
             const response = await fetch('/download-images');
+            loading.style.display = 'none';
+
             if (!response.ok) {
                 const errorMessage = await response.text();
                 document.getElementById('result').innerHTML = `<p>Error: ${errorMessage}</p>`;
